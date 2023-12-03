@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:feedme_home_assignment/model/bot_model.dart';
 import 'package:feedme_home_assignment/model/order_model.dart';
 import 'package:feedme_home_assignment/reuseable_widget.dart';
@@ -15,36 +16,79 @@ class HomeBinding extends Bindings {
 
 class HomeController extends GetxController {
   Timer? timer;
+  var myGroup = AutoSizeGroup();
+  List<OrderModel> orderList = [];
+  List<BotModel> botList = [];
 
   @override
   void onInit() {
     super.onInit();
     timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       // assign order to bot
-      for (var idleBot in dummyBot.where((element) => element.orderNumber == '')) {
-        if (dummyOrderList.where((element) => element.status == 'pending').isNotEmpty) {
-          idleBot.orderNumber = dummyOrderList[dummyOrderList.indexWhere((element) => element.status == 'pending')].orderNumber;
-          idleBot.timer = 3;
-          dummyOrderList[dummyOrderList.indexWhere((element) => element.status == 'pending')].botCode = idleBot.botCode;
-          dummyOrderList[dummyOrderList.indexWhere((element) => element.status == 'pending')].status = 'processing';
+      for (var idleBot in botList.where((element) => element.orderNumber == '')) {
+        if (orderList.where((element) => element.status == 'pending').isNotEmpty) {
+          idleBot.orderNumber = orderList[orderList.indexWhere((element) => element.status == 'pending')].orderNumber;
+          idleBot.timer = 10;
+          orderList[orderList.indexWhere((element) => element.status == 'pending')].botCode = idleBot.botCode;
+          orderList[orderList.indexWhere((element) => element.status == 'pending')].status = 'processing';
         }
       }
       // update bot's timer and status
-      for (var bot in dummyBot) {
+      for (var bot in botList) {
         if (bot.timer == 0 && bot.orderNumber.isNotEmpty) {
-          dummyOrderList[dummyOrderList.indexWhere((element) => element.orderNumber == bot.orderNumber)].status = 'completed';
-          dummyOrderList[dummyOrderList.indexWhere((element) => element.orderNumber == bot.orderNumber)].botCode = '';
+          orderList[orderList.indexWhere((element) => element.orderNumber == bot.orderNumber)].status = 'completed';
+          orderList[orderList.indexWhere((element) => element.orderNumber == bot.orderNumber)].botCode = '';
           bot.orderNumber = '';
           bot.timer = 0;
         } else if (bot.orderNumber.isNotEmpty) {
           bot.timer--;
         }
       }
-      // dummyBot.removeWhere((element) => element.timer == -1);
-      // update orders
-      // push orders to bot
       update();
     });
+  }
+
+  void onAddBot() {
+    botList.add(BotModel('B${botList.length + 1}', '', 0));
+    update();
+  }
+
+  void onRemoveBot() {
+    if (botList.isNotEmpty) {
+      orderList[orderList.indexWhere((element) => element.orderNumber == botList[botList.length - 1].orderNumber)].status = 'pending';
+      orderList[orderList.indexWhere((element) => element.orderNumber == botList[botList.length - 1].orderNumber)].botCode = '';
+      botList.removeLast();
+    } else {
+      showToast('These Is No Bots Online.');
+    }
+  }
+
+  void newNormalOrder() {
+    if (botList.isNotEmpty) {
+      orderList.add(OrderModel('Z${(orderList.length + 1).toString().padLeft(2, '0')}NOM', DateTime.now(), false, 'pending', ''));
+      orderSorting();
+    } else {
+      showToast('These Is No Bots Online.');
+    }
+  }
+
+  void newVIPOrder() {
+    if (botList.isNotEmpty) {
+      orderList.add(OrderModel('A${(orderList.length + 1).toString().padLeft(2, '0')}VIP', DateTime.now(), false, 'pending', ''));
+      orderSorting();
+    } else {
+      showToast('These Is No Bots Online.');
+    }
+  }
+
+  void orderSorting() {
+    // orderList.sort((b, a) => a.isVIP.toString().toLowerCase().compareTo(b.isVIP.toString().toLowerCase()));
+    orderList.sort((a, b) {
+      int cmp = a.isVIP.toString().compareTo(b.isVIP.toString());
+      if (cmp != 0) return cmp;
+      return a.orderNumber.compareTo(b.orderNumber);
+    });
+    update();
   }
 }
 
@@ -62,7 +106,7 @@ class HomePage extends StatelessWidget {
                   Container(
                     height: Get.height * 0.35,
                     padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.all(20),
+                    margin: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(10),
@@ -83,17 +127,20 @@ class HomePage extends StatelessWidget {
                           ],
                         ),
                         const Divider(),
-                        ListView.builder(
-                            shrinkWrap: true,
-                            // padding: const EdgeInsets.symmetric(horizontal: 30),
-                            itemCount: dummyBot.length,
-                            itemBuilder: (context, index) => Row(
-                              children: [
-                                Expanded(flex: 1, child: labelTest(dummyBot[index].botCode)),
-                                Expanded(flex: 3, child: labelTest(dummyBot[index].orderNumber)),
-                                Expanded(flex: 1, child: labelTest('${dummyBot[index].timer}s')),
-                              ],
-                            )),
+                        SizedBox(
+                          height: Get.height * 0.27,
+                          child: ListView.builder(
+                              shrinkWrap: true,
+                              // padding: const EdgeInsets.symmetric(horizontal: 30),
+                              itemCount: ctrl.botList.length,
+                              itemBuilder: (context, index) => Row(
+                                children: [
+                                  Expanded(flex: 1, child: labelTest(ctrl.botList[index].botCode)),
+                                  Expanded(flex: 3, child: labelTest(ctrl.botList[index].orderNumber)),
+                                  Expanded(flex: 1, child: labelTest('${ctrl.botList[index].timer}s')),
+                                ],
+                              )),
+                        ),
                       ],
                     ),
                   ),
@@ -101,7 +148,7 @@ class HomePage extends StatelessWidget {
                     height: Get.height * 0.35,
                     // width: Get.width,
                     padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.all(20),
+                    margin: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(10),
@@ -125,9 +172,28 @@ class HomePage extends StatelessWidget {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            listViewBuilderStatus(dummyOrderList.where((element) => element.status == 'pending').toList()),
-                            listViewBuilderStatus(dummyOrderList.where((element) => element.status == 'processing').toList()),
-                            listViewBuilderStatus(dummyOrderList.where((element) => element.status == 'completed').toList()),
+                            listViewBuilderStatus(ctrl.orderList.where((element) => element.status == 'pending').toList()),
+                            listViewBuilderStatus(ctrl.orderList.where((element) => element.status == 'processing').toList()),
+                            listViewBuilderStatus(ctrl.orderList.where((element) => element.status == 'completed').toList()),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.all(10),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: themeButton('+ Bot', ctrl.onAddBot, ctrl.myGroup)),
+                            Expanded(child: themeButton('- Bot', ctrl.onRemoveBot, ctrl.myGroup)),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            Expanded(child: themeButton('New Normal Order', ctrl.newNormalOrder, ctrl.myGroup)),
+                            Expanded(child: themeButton('New VIP Order', ctrl.newVIPOrder, ctrl.myGroup)),
                           ],
                         ),
                       ],
