@@ -55,11 +55,13 @@ class HomeController extends GetxController {
 
   void onRemoveBot() {
     if (botList.isNotEmpty) {
-      orderList[orderList.indexWhere((element) => element.orderNumber == botList[botList.length - 1].orderNumber)].status = 'pending';
-      orderList[orderList.indexWhere((element) => element.orderNumber == botList[botList.length - 1].orderNumber)].botCode = '';
+      if (orderList.isNotEmpty) {
+        orderList[orderList.indexWhere((element) => element.orderNumber == botList[botList.length - 1].orderNumber)].status = 'pending';
+        orderList[orderList.indexWhere((element) => element.orderNumber == botList[botList.length - 1].orderNumber)].botCode = '';
+      }
       botList.removeLast();
     } else {
-      showToast('These Is No Bots Online.');
+      showToast('These is no bots online.');
     }
   }
 
@@ -68,7 +70,7 @@ class HomeController extends GetxController {
       orderList.add(OrderModel('Z${(orderList.length + 1).toString().padLeft(2, '0')}NOM', DateTime.now(), false, 'pending', ''));
       orderSorting();
     } else {
-      showToast('These Is No Bots Online.');
+      showToast('These is no bots online.');
     }
   }
 
@@ -77,7 +79,7 @@ class HomeController extends GetxController {
       orderList.add(OrderModel('A${(orderList.length + 1).toString().padLeft(2, '0')}VIP', DateTime.now(), false, 'pending', ''));
       orderSorting();
     } else {
-      showToast('These Is No Bots Online.');
+      showToast('These is no bots online.');
     }
   }
 
